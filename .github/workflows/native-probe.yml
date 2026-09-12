@@ -1,0 +1,56 @@
+name: Azure Core native Windows ARM64
+on:
+  push:
+    branches: [codex/azure-core-arm64-probe]
+permissions:
+  contents: read
+jobs:
+  probe:
+    if: github.repository == 'ClayWarren/azure-core-cpp-feedstock'
+    runs-on: windows-11-arm
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [win_arm64_]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Retrieve verified native WIL prerequisite
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Path C:/azure-core-prereqs/win-arm64 -Force | Out-Null
+          gh run download 34688804023 --repo ClayWarren/wil-feedstock --name wil-arm64-package --dir "$env:RUNNER_TEMP/wil"
+          if ($LASTEXITCODE -ne 0) { throw 'Artifact download failed' }
+          $pkg = @(Get-ChildItem "$env:RUNNER_TEMP/wil" -Recurse -Filter 'wil-1.0.240803.1-hef4af3d_1.conda')
+          if ($pkg.Count -ne 1) { throw 'Expected one exact prerequisite' }
+          if ((Get-FileHash $pkg[0].FullName -Algorithm SHA256).Hash.ToLower() -ne 'a21029b7afc53efb3fe64f0f6aaa581dcc4b039a78640edf62609f0b39e3f818') { throw 'Prerequisite checksum mismatch' }
+          Copy-Item $pkg[0].FullName C:/azure-core-prereqs/win-arm64/
+      - name: Build and test Azure Core
+        shell: cmd
+        env:
+          BUILD_PLATFORM: win-arm64
+          CI: github_actions
+          CONDA_BLD_PATH: C:\bld
+          CONFIG: ${{ matrix.config }}
+          MINIFORGE_HOME: C:\Miniforge
+          PYTHONUNBUFFERED: '1'
+          UPLOAD_PACKAGES: 'False'
+          CONDA_CHANNEL_PRIORITY: strict
+          EXTRA_CB_OPTIONS: '--override-channels -c file:///C:/azure-core-prereqs -c conda-forge'
+          RATTLER_BUILD_COLOR: always
+          RATTLER_BUILD_ENABLE_GITHUB_INTEGRATION: 'true'
+        run: |
+          set "flow_run_id=github_%GITHUB_RUN_ID%"
+          set "remote_url=https://github.com/%GITHUB_REPOSITORY%"
+          set "sha=%GITHUB_SHA%"
+          call ".scripts\run_win_build.bat"
+      - name: Preserve Azure Core package
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: azure-core-arm64-package
+          path: C:\bld\**\*.conda
+          if-no-files-found: warn
+          retention-days: 7
