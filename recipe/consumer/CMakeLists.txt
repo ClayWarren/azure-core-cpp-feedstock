@@ -3,3 +3,8 @@ project(azure_core_consumer LANGUAGES CXX)
 find_package(azure-core-cpp CONFIG REQUIRED)
 add_executable(azure_core_consumer main.cpp)
 target_link_libraries(azure_core_consumer PRIVATE Azure::azure-core)
+
+set_target_properties(azure_core_consumer PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+  target_compile_options(azure_core_consumer PRIVATE /permissive- /Zc:__cplusplus)
+endif()

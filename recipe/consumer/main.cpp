@@ -1,3 +1,6 @@
+#if __cplusplus != 201402L
+#error Consumer must compile in C++14 mode
+#endif
 #include <azure/core/url.hpp>
 #include <iostream>
 int main() {

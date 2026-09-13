@@ -8,7 +8,7 @@ mkdir build
 cd build
 cmake %CMAKE_ARGS% ^
   -G Ninja ^
-  -D CMAKE_CXX_STANDARD=14 ^
+  -D CMAKE_CXX_STANDARD=17 ^
   -D BUILD_SHARED_LIBS=ON ^
   -D BUILD_TRANSPORT_WINHTTP=ON ^
   ..

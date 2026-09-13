@@ -26,18 +26,13 @@ jobs:
             $recipe = (Get-Content $path -Raw).Replace('1.16.3', '1.16.4').Replace('70d5d2aea5ece95148ee8b71fb302ae35a1178e58b58150a14df8866a0c54464', '25f8badf23c66ae82debd95e0d074d6269b276e5fa2ce5d4d3cff38fda9ab8c2')
             Set-Content -Path $path -Value $recipe
           }
-      - name: Retrieve verified patched noarch WIL prerequisite
+      - name: Retrieve published unpatched WIL prerequisite
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           New-Item -ItemType Directory -Path C:/azure-core-prereqs/noarch -Force | Out-Null
-          gh run download 34731761426 --repo ClayWarren/wil-feedstock --name wil-noarch-package --dir "$env:RUNNER_TEMP/wil"
-          if ($LASTEXITCODE -ne 0) { throw 'Artifact download failed' }
-          $pkg = @(Get-ChildItem "$env:RUNNER_TEMP/wil" -Recurse -Filter 'wil-1.0.260126.7-h01c409f_2.conda')
-          if ($pkg.Count -ne 1) { throw 'Expected one exact prerequisite' }
-          if ((Get-FileHash $pkg[0].FullName -Algorithm SHA256).Hash.ToLower() -ne '2ab5926d894643643a4a1c3c8708652c371ee8b24949ea0a90fac7f3461980f1') { throw 'Prerequisite checksum mismatch' }
-          Copy-Item $pkg[0].FullName C:/azure-core-prereqs/noarch/
+          $pkg = 'C:/azure-core-prereqs/noarch/wil-1.0.260126.7-h01c409f_1.conda'
+          Invoke-WebRequest 'https://api.anaconda.org/download/conda-forge/wil/1.0.260126.7/noarch/wil-1.0.260126.7-h01c409f_1.conda' -OutFile $pkg
+          if ((Get-FileHash $pkg -Algorithm SHA256).Hash.ToLower() -ne 'ba62f0b2fc0718ee4362ee179591fcb2f03bfc76678400cffc4a99a4d89d20e6') { throw 'Published WIL checksum mismatch' }
       - name: Build and test Azure Core
         shell: cmd
         env:
